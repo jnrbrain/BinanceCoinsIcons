@@ -1,9 +1,18 @@
 import os
+import sys
 import asyncio
 import aiohttp
+import re
 from PIL import Image
 from io import BytesIO
 import platform
+
+# Console encoding configuration
+try:
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
+except AttributeError:
+    pass
 
 if platform.system() == "Windows":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -25,7 +34,7 @@ async def fetch_json(session, url):
 async def download_and_resize(session, symbol, logo_url):
     save_path = f"{SAVE_DIR}/{symbol}.png"
     if os.path.exists(save_path):
-        print(f"⚡ {symbol} already exists, skipping")
+        print(f"[SKIP] {symbol} already exists")
         return
     try:
         async with session.get(logo_url) as resp:
@@ -35,9 +44,9 @@ async def download_and_resize(session, symbol, logo_url):
             img = Image.open(BytesIO(img_bytes)).convert("RGBA")
             img = img.resize((64, 64))
             img.save(save_path)
-            print(f"✅ {symbol} saved")
+            print(f"[SAVE] {symbol} saved")
     except Exception as e:
-        print(f"⚠️ Error saving {symbol}: {e}")
+        print(f"[ERROR] Error saving {symbol}: {e}")
 
 async def main():
     # Windows uyumluluğu
@@ -60,11 +69,42 @@ async def main():
                 if base not in futures_assets:
                     futures_assets.append(base)
 
+        # Spot coinleri eşleştirme için map'e al
+        spot_map = {asset["assetCode"].upper(): asset.get("logoUrl") for asset in spot_assets if asset.get("logoUrl")}
+
         # Spot + Futures coinleri birleştir
-        all_symbols = {asset["assetCode"]: asset.get("logoUrl") for asset in spot_assets}
+        all_symbols = {}
+        
+        # 1. Spot coinleri ekle
+        for asset in spot_assets:
+            code = asset["assetCode"]
+            if asset.get("logoUrl"):
+                all_symbols[code] = asset["logoUrl"]
+
+        # 2. Futures coinleri ekle ve logolarını bul/eşleştir
         for f in futures_assets:
-            if f not in all_symbols:
-                all_symbols[f] = None  # logo yoksa boş geç
+            if f in all_symbols:
+                continue
+            
+            logo_url = None
+            f_upper = f.upper()
+            
+            # Eşleştirme kuralları
+            if f_upper in spot_map:
+                logo_url = spot_map[f_upper]
+            else:
+                stripped = re.sub(r'^\d+', '', f_upper)
+                if stripped and stripped in spot_map:
+                    logo_url = spot_map[stripped]
+                elif (f_upper + "B") in spot_map:
+                    logo_url = spot_map[f_upper + "B"]
+                elif f_upper.endswith("B") and f_upper[:-1] in spot_map:
+                    logo_url = spot_map[f_upper[:-1]]
+                else:
+                    # Bulunamayan coinler için CDN fallback
+                    logo_url = f"https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/{f.lower()}.png"
+            
+            all_symbols[f] = logo_url
 
         print(f"Toplam {len(all_symbols)} coin, indiriliyor...")
 
