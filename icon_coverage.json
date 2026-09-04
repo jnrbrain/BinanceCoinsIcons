@@ -1,0 +1,37 @@
+{
+  "generated_at": "2026-09-04T08:58:19.031618+00:00",
+  "sources": {
+    "futures_logos": "https://www.binance.com/bapi/apex/v1/public/apex/marketing/futures/asset/logo",
+    "spot_logos": "https://www.binance.com/bapi/asset/v2/public/asset/asset/get-all-asset",
+    "alpha_logos": "https://www.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/cex/alpha/all/token/list",
+    "market_logos": "https://www.binance.com/bapi/composite/v1/public/marketing/symbol/list",
+    "spot": "https://api.binance.com/api/v3/exchangeInfo",
+    "usd_m": "https://fapi.binance.com/fapi/v1/exchangeInfo",
+    "coin_m": "https://dapi.binance.com/dapi/v1/exchangeInfo"
+  },
+  "source_errors": {},
+  "downloaded": 1800,
+  "existing": 0,
+  "missing": [
+    "CFD",
+    "MCAP"
+  ],
+  "index_fallbacks": [
+    "ALL",
+    "BTCDOM"
+  ],
+  "markets": {
+    "spot": {
+      "total": 487,
+      "missing": []
+    },
+    "usd_m": {
+      "total": 714,
+      "missing": []
+    },
+    "coin_m": {
+      "total": 20,
+      "missing": []
+    }
+  }
+}
