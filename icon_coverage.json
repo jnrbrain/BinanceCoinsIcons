@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-04T08:58:19.031618+00:00",
+  "generated_at": "2026-09-04T11:00:10.049944+00:00",
   "sources": {
     "futures_logos": "https://www.binance.com/bapi/apex/v1/public/apex/marketing/futures/asset/logo",
     "spot_logos": "https://www.binance.com/bapi/asset/v2/public/asset/asset/get-all-asset",
@@ -10,8 +10,15 @@
     "coin_m": "https://dapi.binance.com/dapi/v1/exchangeInfo"
   },
   "source_errors": {},
-  "downloaded": 1800,
-  "existing": 0,
+  "requested_sources": [
+    "futures_logos",
+    "spot_logos",
+    "alpha_logos",
+    "market_logos"
+  ],
+  "market_coverage_checked": false,
+  "downloaded": 0,
+  "existing": 1864,
   "missing": [
     "CFD",
     "MCAP"
@@ -33,5 +40,6 @@
       "total": 20,
       "missing": []
     }
-  }
+  },
+  "market_coverage_checked_at": "2026-09-04T08:58:19.031618+00:00"
 }
