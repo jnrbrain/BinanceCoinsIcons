@@ -1,4 +1,5 @@
 import tempfile
+import json
 import unittest
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
@@ -37,6 +38,26 @@ class LogoTests(unittest.TestCase):
             self.assertFalse(downloader.valid_icon(path))
             Image.new("RGBA", (64, 64)).save(path)
             self.assertTrue(downloader.valid_icon(path))
+
+
+class HostedCatalogTests(unittest.IsolatedAsyncioTestCase):
+    async def test_catalog_refresh_preserves_coverage_date_and_never_calls_exchange_api(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            previous = {'generated_at': '2026-09-04T00:00:00Z', 'markets': {'usd_m': {'total': 714, 'missing': []}}}
+            (root / 'icon_coverage.json').write_text(json.dumps(previous))
+            fetch = AsyncMock(return_value={'data': []})
+            with patch.object(downloader, 'ROOT', root), patch.object(downloader, 'SAVE_DIR', root / 'binance'), \
+                 patch.object(downloader, 'fetch_json', fetch), \
+                 patch.object(downloader, 'download_and_resize', AsyncMock(return_value='existing')):
+                self.assertEqual(await downloader.main(logos_only=True), 0)
+            urls = [call.args[1] for call in fetch.await_args_list]
+            self.assertEqual(len(urls), 4)
+            self.assertFalse(any('exchangeInfo' in url for url in urls))
+            report = json.loads((root / 'icon_coverage.json').read_text())
+            self.assertFalse(report['market_coverage_checked'])
+            self.assertEqual(report['markets'], previous['markets'])
+            self.assertEqual(report['market_coverage_checked_at'], previous['generated_at'])
 
 
 if __name__ == "__main__":

@@ -94,15 +94,18 @@ async def download_and_resize(session, symbol, urls, semaphore, source_records):
         return "existing" if valid_icon(path) else "missing"
 
 
-async def main():
+async def main(logos_only=False):
     SAVE_DIR.mkdir(exist_ok=True)
     source_file = ROOT / "icon_sources.json"
     source_records = json.loads(source_file.read_text(encoding="utf-8")) if source_file.exists() else {}
+    coverage_file = ROOT / 'icon_coverage.json'
+    previous = json.loads(coverage_file.read_text(encoding='utf-8')) if coverage_file.exists() else {}
+    selected = {name: url for name, url in SOURCES.items() if not logos_only or name.endswith('_logos')}
     timeout = aiohttp.ClientTimeout(total=25)
     async with aiohttp.ClientSession(timeout=timeout, connector=aiohttp.TCPConnector(limit=12)) as session:
-        results = await asyncio.gather(*(fetch_json(session, url) for url in SOURCES.values()), return_exceptions=True)
+        results = await asyncio.gather(*(fetch_json(session, url) for url in selected.values()), return_exceptions=True)
         payloads, source_errors = {}, {}
-        for name, result in zip(SOURCES, results):
+        for name, result in zip(selected, results):
             if isinstance(result, Exception):
                 source_errors[name] = str(result)
                 print(f"[SOURCE ERROR] {name}: {result}")
@@ -120,7 +123,7 @@ async def main():
         markets = {}
         for source in ("spot", "usd_m", "coin_m"):
             markets[source] = sorted({s["baseAsset"].upper() for s in payloads.get(source, {}).get("symbols", []) if s.get("status", s.get("contractStatus")) == "TRADING"})
-        symbols = sorted(set(logos).union(*(set(v) for v in markets.values())))
+        symbols = sorted(set(logos).union(*(set(v) for v in markets.values())).union(p.stem for p in SAVE_DIR.glob('*.png')))
         # Reject path separators/control chars, allow Binance Unicode symbols.
         symbols = [s for s in symbols if s and not re.search(r'[<>:"/\\|?*\x00-\x1f]', s) and '..' not in s]
         semaphore = asyncio.Semaphore(12)
@@ -129,15 +132,24 @@ async def main():
         report = {
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "sources": SOURCES, "source_errors": source_errors,
+            "requested_sources": list(selected),
+            "market_coverage_checked": not logos_only and all(name in payloads for name in markets),
             "downloaded": statuses.count("downloaded"), "existing": statuses.count("existing"),
             "missing": sorted(missing),
             "index_fallbacks": sorted(INDEX_FALLBACKS),
             "markets": {name: {"total": len(values), "missing": sorted(set(values) & missing)} for name, values in markets.items()},
         }
+        if logos_only:
+            # Public logo catalogs are reachable by hosted CI. Do not claim an
+            # exchange-wide audit when exchangeInfo was not requested there.
+            report['markets'] = previous.get('markets', {})
+            report['market_coverage_checked_at'] = previous.get('market_coverage_checked_at', previous.get('generated_at'))
+        elif report['market_coverage_checked']:
+            report['market_coverage_checked_at'] = report['generated_at']
         source_file.write_text(json.dumps(source_records, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         (ROOT / "icon_coverage.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(json.dumps({k: report[k] for k in ("downloaded", "existing", "source_errors", "markets")}, ensure_ascii=False))
-        write_manifest()
+        write_manifest(SAVE_DIR, ROOT / 'icon_manifest.json')
         return 1 if source_errors or any(v["missing"] for v in report["markets"].values()) else 0
 
 
@@ -161,7 +173,9 @@ if __name__ == "__main__":
         sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--manifest-only', action='store_true', help='Rebuild hashes from existing PNGs without network requests')
-    if parser.parse_args().manifest_only:
+    parser.add_argument('--logos-only', action='store_true', help='Refresh public logo catalogs without claiming a fresh exchangeInfo coverage audit')
+    args = parser.parse_args()
+    if args.manifest_only:
         write_manifest()
     else:
-        raise SystemExit(asyncio.run(main()))
+        raise SystemExit(asyncio.run(main(logos_only=args.logos_only)))

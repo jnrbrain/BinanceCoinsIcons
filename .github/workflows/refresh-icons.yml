@@ -19,7 +19,10 @@ jobs:
           python-version: '3.13'
       - run: python -m pip install aiohttp==3.14.3 pillow==12.2.0
       - run: python -m unittest test_coin_logo_downloader.py
-      - run: python coin_logo_downloader.py
+      # The hosted runner cannot access regional exchange trading APIs (451).
+      # Public Binance logo catalogs include futures/spot/Alpha assets; keep
+      # the last verified exchange coverage date explicit in the report.
+      - run: python coin_logo_downloader.py --logos-only
       - name: Publish changed icons and manifest together
         run: |
           git config user.name 'github-actions[bot]'
