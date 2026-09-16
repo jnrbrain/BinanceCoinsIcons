@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-15T08:48:07.965935+00:00",
+  "generated_at": "2026-09-16T08:41:59.144566+00:00",
   "sources": {
     "futures_logos": "https://www.binance.com/bapi/apex/v1/public/apex/marketing/futures/asset/logo",
     "spot_logos": "https://www.binance.com/bapi/asset/v2/public/asset/asset/get-all-asset",
@@ -17,7 +17,7 @@
     "market_logos"
   ],
   "market_coverage_checked": false,
-  "downloaded": 0,
+  "downloaded": 3,
   "existing": 1880,
   "missing": [
     "CFD",
