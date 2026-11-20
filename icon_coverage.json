@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-19T11:53:33.991941+00:00",
+  "generated_at": "2026-11-20T11:54:26.789360+00:00",
   "sources": {
     "futures_logos": "https://www.binance.com/bapi/apex/v1/public/apex/marketing/futures/asset/logo",
     "spot_logos": "https://www.binance.com/bapi/asset/v2/public/asset/asset/get-all-asset",
@@ -17,8 +17,8 @@
     "market_logos"
   ],
   "market_coverage_checked": false,
-  "downloaded": 5,
-  "existing": 1973,
+  "downloaded": 7,
+  "existing": 1977,
   "missing": [
     "CFD",
     "MCAP"
